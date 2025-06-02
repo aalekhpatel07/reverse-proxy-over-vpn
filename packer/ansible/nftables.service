@@ -3,6 +3,7 @@
 [Unit]
 Description=nftables
 Documentation=man:nftables(8)
+After=network.target wg-quick@wg.service
 
 [Service]
 Type=oneshot
@@ -11,6 +12,7 @@ StandardInput=null
 ExecStart=/sbin/nft -f /etc/nftables/nftables.conf
 ExecReload=/sbin/nft 'flush ruleset; include "/etc/nftables/nftables.conf";'
 ExecStop=/usr/bin/nft flush ruleset
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
