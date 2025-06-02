@@ -79,7 +79,7 @@ EOF
 }
 
 variable "wg_peer_interface_ip_addr" {
-  type    = string
+  type = string
 
   validation {
     condition     = length(var.wg_peer_interface_ip_addr) > 0
