@@ -1,9 +1,5 @@
 packer {
   required_plugins {
-    # docker = {
-    #   version = ">= 1.0.8"
-    #   source  = "github.com/hashicorp/docker"
-    # }
     ansible = {
       version = "~> 1"
       source  = "github.com/hashicorp/ansible"
@@ -17,18 +13,18 @@ packer {
 }
 
 variable "digitalocean_api_token" {
-  default = env("DIGITALOCEAN_API_TOKEN")
+  default = env("TF_VAR_digitalocean_token")
 
   validation {
     condition     = length(var.digitalocean_api_token) > 0
     error_message = <<EOF
-The digitalocean_api_token var is not set: make sure to set the DIGITALOCEAN_API_TOKEN env var.
+The TF_VAR_digitalocean_token var is not set: make sure to set the TF_VAR_digitalocean_token env var.
 EOF
   }
 }
 
 variable "digitalocean_region" {
-  default = env("DIGITALOCEAN_REGION")
+  default = env("TF_VAR_DIGITALOCEAN_REGION")
 
   validation {
     condition     = length(var.digitalocean_region) > 0
