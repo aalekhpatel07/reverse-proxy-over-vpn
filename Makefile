@@ -5,7 +5,11 @@ PEER_ADDR ?= 10.10.10.2
 TUNNEL_NAME ?= wg_example_vps
 VPS_SHOULD_FORWARD_TO_PORT ?= 8000
 
-vps-image:
+packer-init:
+	packer init \
+		packer/tnnel.pkr.hcl
+
+packer-build:
 	packer build \
 		-var "wg_home_addr=$(HOME_ADDR)" \
 		-var "wg_home_port=$(VPS_SHOULD_FORWARD_TO_PORT)" \
@@ -13,11 +17,13 @@ vps-image:
 		-var "wg_peer_interface_ip_addr=$(PEER_ADDR)" \
 		packer/tunnel.pkr.hcl
 
-deploy-vps:
+tf-init:
 	terraform -chdir terraform/ init
+
+tf-apply:
 	terraform -chdir terraform/ apply
-	
 
-deploy: tf-init tf-apply
+vps-image: packer-init packer-build
+deploy-vps: tf-init tf-apply
 
-all: vps-image deploy
+all: vps-image deploy-vps
