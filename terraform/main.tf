@@ -66,7 +66,7 @@ output "droplet_ipv4_address" {
 
 
 data "local_file" "home-wg-conf-templated" {
-  filename = "../packer/ansible/playbooks/${var.connection_name}.conf"
+  filename = "../.generated/${var.connection_name}/${var.connection_name}.conf"
 }
 
 resource "local_file" "home-wg-conf-final" {
