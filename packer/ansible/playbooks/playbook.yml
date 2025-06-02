@@ -160,12 +160,18 @@
       ansible.builtin.shell:
         cmd: nft list ruleset > /etc/sysconfig/nftables.conf
 
-    - name: Copy the host's wireguard config and keys to /etc/wireguard
+    - name: Ensure the wireguard config dir to generate the files into exists.
+      ansible.builtin.file: 
+        path: "../../../.generated/{{ connection_name }}/"
+        state: directory
+      delegate_to: 127.0.0.1
+
+    - name: Copy the generated wireguard config to the project root generated directory..
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
       delegate_to: 127.0.0.1
       loop:
-        - { src: "{{ connection_name }}.key", dest: "/etc/wireguard/{{ connection_name }}.key" }
-        - { src: "{{ connection_name }}.pub", dest: "/etc/wireguard/{{ connection_name }}.pub" }
-        - { src: "{{ connection_name }}.conf", dest: "/etc/wireguard/{{ connection_name }}.conf" }
+        - { src: "{{ connection_name }}.key", dest: "../../../.generated/{{ connection_name }}/{{ connection_name }}.key" }
+        - { src: "{{ connection_name }}.pub", dest: "../../../.generated/{{ connection_name }}/{{ connection_name }}.pub" }
+        - { src: "{{ connection_name }}.conf", dest: "../../../.generated/{{ connection_name }}/{{ connection_name }}.conf" }
