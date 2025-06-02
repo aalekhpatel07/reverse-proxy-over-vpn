@@ -12,7 +12,7 @@ Copy `.env.example` to `.env`, and save the token in it:
 TF_VAR_digitalocean_token=<api-token-goes-here>
 ```
 
-2. Ensure you have [Packer](https://developer.hashicorp.com/packer) and [Terraform](https://developer.hashicorp.com/terraform) installed on your host machine. We'll use Packer to build the image that your VPS will run (including wireguard, and nftables both), and Terraform to deploy that image to a DigitalOcean droplet that has a publically accessible IPv4 address.
+2. Ensure you have [Ansible](https://docs.ansible.com/ansible/latest/index.html), [Packer](https://developer.hashicorp.com/packer) and [Terraform](https://developer.hashicorp.com/terraform) installed on your host machine. We'll use Packer to build the image that your VPS will run while provisioning Wireguard and NFTables with Ansible. Then we'll use Terraform to deploy that image to a DigitalOcean droplet that has a publically accessible IPv4 address.
 
 3. Create an SSH Key pair under `./terraform/.ssh/id_ed25519`. You'll be able to use this key to ssh into the VPS once its deployed (when needed):
 
@@ -28,12 +28,18 @@ ssh-keygen -t ed25519 -f ./terraform/.ssh/id_ed25519 -q -N ""
 - `TUNNEL_NAME`: A unique name for this Wireguard Tunnel.
 - `VPS_SHOULD_PORT_FORWARD_TO`: The port (on the "home" end) that the VPS should redirect all TCP traffic to.
 
-5. Run `make all` and follow any instructions on the Packer and Terraform process. Take a note of `droplet_ipv4_address` at the end of the process. That is your VPS's publically accessible IP address.
-   
-6. If everything went okay, start a dummy nginx container to test that the packets are shuttled nicely over the Wireguard tunnel:
+5. Source the env variables into the host's env:
+```sh
+export $(xargs < .env)
+```
 
+6. Run `make all` and follow any instructions on the Packer and Terraform process. Take a note of `droplet_ipv4_address` at the end of the process. That is your VPS's publically accessible IP address.
+   
+7. If everything went okay, Terraform would've started a DigitalOcean droplet using the custom image we generated recently that has the Wireguard Tunnel config baked in. Terraform would also have copied over the tunnel's config files to `/etc/wireguard/$TUNNEL_NAME.(conf|pub|key)`, and started a `wg-quick@$TUNNEL_NAME.service` systemd service.
+
+8. Start a dummy nginx container to test that the packets are shuttled nicely over the Wireguard tunnel:
 ```sh
 docker run --rm --name nginx -d -p 8005:80 nginx
 ```
 
-7. Visit `http://<droplet_ipv4_address>/` and verify that NGINX is accessible.
+9. Visit `http://<droplet_ipv4_address>/` and verify that NGINX is accessible.
