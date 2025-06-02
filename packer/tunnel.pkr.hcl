@@ -118,6 +118,7 @@ build {
   provisioner "ansible" {
     playbook_file = "./packer/ansible/playbooks/playbook.yml"
     extra_arguments = [
+      "--scp-extra-args", "'-O'",
       "--extra-vars", "home_addr=${var.wg_home_addr}",
       "--extra-vars", "home_port=${var.wg_home_port}",
       "--extra-vars", "peer_interface_ip_addr=${var.wg_peer_interface_ip_addr}",
