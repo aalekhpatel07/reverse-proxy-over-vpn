@@ -1,0 +1,161 @@
+---
+- name: 'Provision image with nftables, and wireguard.'
+  hosts: default
+  become: false
+  vars_prompt:
+    - name: home_addr
+      prompt: "What is the IP address of the host (over this Wireguard tunnel)? (Default: 10.10.10.1)"
+      default: "10.10.10.1"
+      private: false
+    - name: home_port
+      prompt: "What is the port for the host that will host a meaningful http gateway? (Default: 80)"
+      default: "80"
+      private: false
+    - name: peer_interface_ip_addr
+      prompt: "What is the IP address of the peer (over this Wireguard tunnel)? (Default: 10.10.10.2)"
+      default: "10.10.10.2"
+      private: false
+    - name: connection_name
+      prompt: "Enter a human-friendly name for this Wireguard tunnel. (Default: wg_example)"
+      default: "wg_example"
+  
+  tasks:
+    - name: Set up Wireguard private key on host.
+      ansible.builtin.shell:
+        cmd: wg genkey > {{ connection_name }}.key
+      delegate_to: 127.0.0.1
+  
+    - name: Set up Wireguard public key on host.
+      ansible.builtin.shell:
+        cmd: wg pubkey < {{ connection_name }}.key > {{ connection_name }}.pub
+      delegate_to: 127.0.0.1
+  
+    - name: Save public key of the host.
+      ansible.builtin.shell:
+        cmd: cat {{ connection_name }}.pub
+      register: home_pubkey
+      delegate_to: 127.0.0.1
+  
+    - name: Install nftables and wireguard.
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nftables
+        - wireguard-tools
+        - iproute
+  
+    - name: Set up Wireguard private key.
+      ansible.builtin.shell:
+        cmd: wg genkey > wg.key
+        chdir: /etc/wireguard
+  
+    - name: Set up Wireguard public key.
+      ansible.builtin.shell:
+        cmd: wg pubkey < wg.key > wg.pub
+        chdir: /etc/wireguard
+
+    - name: Save public key of the peer for later.
+      ansible.builtin.shell:
+        cmd: cat wg.pub
+        chdir: /etc/wireguard
+      register: pubkey
+
+    - name: Copy template conf.
+      ansible.builtin.copy:
+        src: ../vps.wg.conf
+        dest: /etc/wireguard/wg.conf
+  
+    - name: Interpolate variables into the Wireguard config.
+      ansible.builtin.replace:
+        path: /etc/wireguard/wg.conf
+        regexp: '\${{ item.name }}'
+        replace: '{{ item.value }}'
+      loop:
+        - { name: "ADDRESS", value: "{{ peer_interface_ip_addr }}/24" }
+        - { name: "PUBLIC_KEY", value: "{{ home_pubkey.stdout }}" }
+        - { name: "ALLOWED_IPS", value: "{{ home_addr }}/32"}
+    
+    - name: Generate wg template for host.
+      ansible.builtin.copy:
+        src: ../home.wg.conf
+        dest: "{{ connection_name }}.conf"
+      delegate_to: 127.0.0.1
+
+    - name: Interpolate variables into hosts' wireguard conf.
+      ansible.builtin.replace:
+        path: "{{ connection_name }}.conf"
+        regexp: '\${{ item.name }}'
+        replace: '{{ item.value }}'
+      delegate_to: 127.0.0.1
+      loop:
+        - { name: "HOME_WG_IP_CIDR", value: "{{ home_addr }}/32" }
+        - { name: "PEER_PUBLIC_KEY", value: "{{ pubkey.stdout }}" }
+        - { name: "PEER_WG_IP_CIDR", value: "{{ peer_interface_ip_addr }}/32" }
+
+    - name: Enable wg-quick systemd service.
+      ansible.builtin.systemd_service:
+        name: "wg-quick@wg"
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Get default interface
+      ansible.builtin.shell:
+        cmd: ip route get 8.8.8.8 | awk -- '{printf $5}'
+      register: ip_route_output
+
+    - name: Copy over templated nftables config.
+      ansible.builtin.copy:
+        src: ../vps.nftables.conf
+        dest: /etc/nftables/nftables.conf
+    
+    - name: Interpolate variables into the nftables config.
+      ansible.builtin.replace:
+        path: /etc/nftables/nftables.conf
+        regexp: '\${{ item.name }}'
+        replace: '{{ item.value }}'
+      loop:
+        - { name: "UPSTREAM_IP_ADDR", value: "{{ home_addr }}" }
+        - { name: "UPSTREAM_PORT", value: "{{ home_port }}" }
+        - { name: "INPUT_INTERFACE", value: "{{ ip_route_output.stdout }}"}
+
+    - name: Copy over nftables.service
+      ansible.builtin.copy:
+        src: ../nftables.service
+        dest: /etc/systemd/system/nftables.service
+
+    - name: Enable ip forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - name: Enable nftables systemd service.
+      ansible.builtin.systemd_service:
+        name: "nftables"
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Clear nft ruleset.
+      ansible.builtin.shell:
+        cmd: nft flush ruleset
+    
+    - name: Restart nftables
+      ansible.builtin.systemd_service:
+        name: "nftables"
+        state: restarted
+        daemon_reload: true
+    
+    - name: Copy the host's wireguard config and keys to /etc/wireguard
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      delegate_to: 127.0.0.1
+      loop:
+        - { src: "{{ connection_name }}.key", dest: "/etc/wireguard/{{ connection_name }}.key" }
+        - { src: "{{ connection_name }}.pub", dest: "/etc/wireguard/{{ connection_name }}.pub" }
+        - { src: "{{ connection_name }}.conf", dest: "/etc/wireguard/{{ connection_name }}.conf" }

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0
+# SPDX-URL: https://spdx.org/licenses/GPL-2.0.html
+[Unit]
+Description=nftables
+Documentation=man:nftables(8)
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardInput=null
+ExecStart=/sbin/nft -f /etc/nftables/nftables.conf
+ExecReload=/sbin/nft 'flush ruleset; include "/etc/nftables/nftables.conf";'
+ExecStop=/usr/bin/nft flush ruleset
+
+[Install]
+WantedBy=multi-user.target
