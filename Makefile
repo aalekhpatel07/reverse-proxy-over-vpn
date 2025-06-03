@@ -21,7 +21,10 @@ tf-init:
 	terraform -chdir=terraform/ init
 
 tf-apply:
-	terraform -chdir=terraform/ apply
+	terraform -chdir=terraform/ \
+        	apply \
+        	-auto-approve \
+        	-var connection_name=$(TUNNEL_NAME)
 
 vps-image: packer-init packer-build
 deploy-vps: tf-init tf-apply

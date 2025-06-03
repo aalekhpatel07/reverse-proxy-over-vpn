@@ -69,6 +69,16 @@ data "local_file" "home-wg-conf-templated" {
   filename = "../.generated/${var.connection_name}/${var.connection_name}.conf"
 }
 
+resource "local_file" "home-wg-pub-final" {
+  source = "../.generated/${var.connection_name}/${var.connection_name}.pub"
+  filename = "/etc/wireguard/${var.connection_name}.pub"
+}
+
+resource "local_file" "home-wg-key-final" {
+  source = "../.generated/${var.connection_name}/${var.connection_name}.key"
+  filename = "/etc/wireguard/${var.connection_name}.key"
+}
+
 resource "local_file" "home-wg-conf-final" {
   content  = replace(data.local_file.home-wg-conf-templated.content, "$PEER_PUBLIC_IP_ADDR", local.ip)
   filename = "/etc/wireguard/${var.connection_name}.conf"
