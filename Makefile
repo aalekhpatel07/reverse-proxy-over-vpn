@@ -7,7 +7,7 @@ VPS_SHOULD_FORWARD_TO_PORT ?= 8000
 
 packer-init:
 	packer init \
-		packer/tnnel.pkr.hcl
+		packer/tunnel.pkr.hcl
 
 packer-build:
 	packer build \
@@ -18,10 +18,10 @@ packer-build:
 		packer/tunnel.pkr.hcl
 
 tf-init:
-	terraform -chdir terraform/ init
+	terraform -chdir=terraform/ init
 
 tf-apply:
-	terraform -chdir terraform/ apply
+	terraform -chdir=terraform/ apply
 
 vps-image: packer-init packer-build
 deploy-vps: tf-init tf-apply
