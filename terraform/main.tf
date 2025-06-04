@@ -29,8 +29,19 @@ variable "connection_name" {
 }
 
 
-data "digitalocean_image" "wg-tunnel" {
-  name = "wireguard-tunnel-almalinux-9-x64"
+data "digitalocean_images" "available" {
+  filter {
+    key = "name"
+    values = ["${var.conection_name}"]
+  }
+  filter {
+    key = "private"
+    values = [true]
+  }
+  sort {
+    key = "created"
+    direction = "desc"
+  }
 }
 
 resource "digitalocean_ssh_key" "wg-tunnel-key" {
@@ -40,7 +51,7 @@ resource "digitalocean_ssh_key" "wg-tunnel-key" {
 
 
 resource "digitalocean_droplet" "vps" {
-  image    = data.digitalocean_image.wg-tunnel.id
+  image    = data.digitalocean_images.available.images[0].id
   name     = local.vps_name
   region   = "tor1"
   size     = "s-1vcpu-2gb"
@@ -72,16 +83,19 @@ data "local_file" "home-wg-conf-templated" {
 resource "local_file" "home-wg-pub-final" {
   source = "../.generated/${var.connection_name}/${var.connection_name}.pub"
   filename = "/etc/wireguard/${var.connection_name}.pub"
+  file_permission = "0644"
 }
 
 resource "local_file" "home-wg-key-final" {
   source = "../.generated/${var.connection_name}/${var.connection_name}.key"
   filename = "/etc/wireguard/${var.connection_name}.key"
+  file_permission = "0644"
 }
 
 resource "local_file" "home-wg-conf-final" {
   content  = replace(data.local_file.home-wg-conf-templated.content, "$PEER_PUBLIC_IP_ADDR", local.ip)
   filename = "/etc/wireguard/${var.connection_name}.conf"
+  file_permission = "0644"
 
   provisioner "local-exec" {
     command = "sudo systemctl restart wg-quick@${var.connection_name}"

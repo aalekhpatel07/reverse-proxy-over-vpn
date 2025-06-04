@@ -26,7 +26,7 @@ tf-apply:
         	-auto-approve \
         	-var connection_name=$(TUNNEL_NAME)
 
-vps-image: packer-init packer-build
-deploy-vps: tf-init tf-apply
+build-image: packer-init packer-build
+deploy: tf-init tf-apply
 
-all: vps-image deploy-vps
+all: build-image deploy

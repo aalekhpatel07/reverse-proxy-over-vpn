@@ -106,7 +106,7 @@ source "digitalocean" "tunnel-base" {
   image         = "almalinux-9-x64"
   size          = "s-1vcpu-2gb"
   region        = var.digitalocean_region
-  snapshot_name = "wireguard-tunnel-almalinux-9-x64"
+  snapshot_name = var.wg_connection_name
   snapshot_tags = ["wireguard-tunnel", "almalinux-9"]
 }
 
