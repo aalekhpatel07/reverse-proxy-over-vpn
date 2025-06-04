@@ -93,7 +93,7 @@ resource "local_file" "home-wg-key-final" {
 }
 
 resource "local_file" "home-wg-conf-final" {
-  depends_on = [local_file.home-wg-key-final, local_file.home-wg-pub-final]
+  depends_on      = [local_file.home-wg-key-final, local_file.home-wg-pub-final]
   content         = replace(data.local_file.home-wg-conf-templated.content, "$PEER_PUBLIC_IP_ADDR", local.ip)
   filename        = "/etc/wireguard/${var.connection_name}.conf"
   file_permission = "0644"
