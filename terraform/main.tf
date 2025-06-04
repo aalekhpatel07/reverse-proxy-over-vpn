@@ -31,15 +31,15 @@ variable "connection_name" {
 
 data "digitalocean_images" "available" {
   filter {
-    key = "name"
+    key    = "name"
     values = ["${var.conection_name}"]
   }
   filter {
-    key = "private"
+    key    = "private"
     values = [true]
   }
   sort {
-    key = "created"
+    key       = "created"
     direction = "desc"
   }
 }
@@ -81,20 +81,20 @@ data "local_file" "home-wg-conf-templated" {
 }
 
 resource "local_file" "home-wg-pub-final" {
-  source = "../.generated/${var.connection_name}/${var.connection_name}.pub"
-  filename = "/etc/wireguard/${var.connection_name}.pub"
+  source          = "../.generated/${var.connection_name}/${var.connection_name}.pub"
+  filename        = "/etc/wireguard/${var.connection_name}.pub"
   file_permission = "0644"
 }
 
 resource "local_file" "home-wg-key-final" {
-  source = "../.generated/${var.connection_name}/${var.connection_name}.key"
-  filename = "/etc/wireguard/${var.connection_name}.key"
+  source          = "../.generated/${var.connection_name}/${var.connection_name}.key"
+  filename        = "/etc/wireguard/${var.connection_name}.key"
   file_permission = "0644"
 }
 
 resource "local_file" "home-wg-conf-final" {
-  content  = replace(data.local_file.home-wg-conf-templated.content, "$PEER_PUBLIC_IP_ADDR", local.ip)
-  filename = "/etc/wireguard/${var.connection_name}.conf"
+  content         = replace(data.local_file.home-wg-conf-templated.content, "$PEER_PUBLIC_IP_ADDR", local.ip)
+  filename        = "/etc/wireguard/${var.connection_name}.conf"
   file_permission = "0644"
 
   provisioner "local-exec" {
